@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seller Creative Intelligence Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'sans-serif']
+            },
+            colors: {
+              appleBlue: '#0071e3',
+              appleBlueSoft: '#e8f2ff',
+              appleText: '#1d1d1f',
+              appleMuted: '#6e6e73',
+              appleLine: '#d2d2d7',
+              appleBg: '#f5f5f7'
+            },
+            boxShadow: {
+              glass: '0 12px 30px rgba(0,0,0,0.08)',
+              card: '0 6px 20px rgba(0,0,0,0.06)'
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        background:
+          radial-gradient(90rem 30rem at 0% 0%, #edf4ff 0%, transparent 55%),
+          radial-gradient(70rem 30rem at 100% 100%, #ecfff6 0%, transparent 45%),
+          #f5f5f7;
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+
+      .product.active {
+        border-color: #0071e3;
+        box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.18);
+      }
+
+      .variant.active {
+        border-color: #0071e3;
+        background: #e8f2ff88;
+      }
+
+    </style>
+  </head>
+  <body class="min-h-screen overflow-y-auto font-sans text-appleText">
+    <main id="mainGrid" class="mx-auto grid min-h-screen max-w-[1580px] grid-cols-[34%_66%] gap-3 p-3">
+      <aside id="leftPane" class="glass relative flex h-full flex-col rounded-[26px] border border-appleLine/80 shadow-glass">
+        <button
+          id="queueToggleBtn"
+          aria-label="Toggle queue width"
+          class="absolute -right-3 top-8 z-10 rounded-full border border-appleLine bg-white px-2 py-1 text-[15px] shadow-card"
+        >
+          ⇤
+        </button>
+        <header class="border-b border-appleLine/70 px-4 py-3">
+          <h1 class="text-[20px] font-semibold tracking-tight">Seller Decision Intelligence Console</h1>
+          <p class="mt-0.5 text-[15px] text-appleMuted">Pick a product. The agent proposes testable persona variants and projected business impact.</p>
+          <div class="mt-2 flex items-center gap-2">
+            <label for="sortBy" class="text-[16px] text-appleMuted">Sort</label>
+            <select id="sortBy" class="rounded-full border border-appleLine bg-white px-2 py-1 text-[16px] font-medium">
+              <option value="priority">Priority (recommended)</option>
+              <option value="conversionGap">Conversion gap</option>
+              <option value="reviews">Review opportunity</option>
+              <option value="priceHigh">Price high to low</option>
+            </select>
+          </div>
+        </header>
+        <section id="products" class="flex flex-1 flex-col gap-1.5 p-2.5"></section>
+      </aside>
+
+      <section class="glass flex h-full flex-col gap-2 rounded-[26px] border border-appleLine/80 p-3 shadow-glass">
+        <article id="recommendationCard" class="rounded-3xl border border-appleLine/80 bg-white/85 p-3 shadow-card">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-[16px] font-medium text-appleMuted">Decision intelligence recommendation</p>
+              <h2 id="agentHeadline" class="mt-0.5 text-[30px] font-semibold leading-[1.05] tracking-tight"></h2>
+            </div>
+            <div class="space-y-1">
+              <select id="objective" class="w-full rounded-full border border-appleLine bg-white px-2 py-1 text-[16px] font-medium">
+                <option value="brand">Goal: Better brand alignment</option>
+                <option value="seasonal">Goal: Holiday / seasonal deals</option>
+                <option value="conversion">Goal: Highest conversion now</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-2 grid grid-cols-2 gap-2 text-[16px]">
+            <div class="rounded-xl bg-appleBg p-2">
+              <p class="text-appleMuted">Why this variant</p>
+              <p id="reasonCode" class="font-medium text-appleText"></p>
+            </div>
+            <div class="rounded-xl bg-appleBg p-2">
+              <p class="text-appleMuted">If you keep current content</p>
+              <p id="counterfactual" class="font-medium text-appleText"></p>
+            </div>
+          </div>
+
+          <div class="mt-2">
+            <p class="text-[16px] text-appleMuted">Candidate variants (persona-targeted)</p>
+            <div id="variants" class="mt-1 grid grid-cols-3 gap-2"></div>
+            <div id="personaLoading" class="mt-2 hidden items-center gap-2 rounded-lg border border-appleLine bg-white px-3 py-2 text-[14px] text-appleMuted">
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-appleLine border-t-appleBlue"></span>
+              <span>Generating persona...</span>
+            </div>
+          </div>
+
+          <div id="evidenceBlock" class="mt-2 rounded-xl bg-appleBg p-2">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-[16px] text-appleMuted">Generated description and image</p>
+              <div class="rounded-full bg-appleBlueSoft px-3 py-1 text-[14px] font-semibold text-appleBlue">Confidence <span id="confidence">0%</span></div>
+            </div>
+            <div class="mt-1 grid grid-cols-[38%_62%] gap-2 items-stretch">
+              <div class="overflow-hidden rounded-lg border border-appleLine/70 bg-white h-[190px]">
+                <img id="variantPreviewImage" src="" alt="Variant preview" class="block h-full w-full object-cover object-center" />
+              </div>
+              <div class="h-[190px] rounded-lg bg-white p-2 overflow-y-auto">
+                <p id="variantPreviewTag" class="text-[16px] font-semibold uppercase tracking-wide text-appleBlue"></p>
+                <p id="variantPreviewTitle" class="mt-0.5 text-[15px] font-semibold leading-tight"></p>
+                <p id="variantPreviewDescription" class="mt-1 text-[16px] text-appleMuted"></p>
+                <ul id="variantPreviewBullets" class="mt-1 space-y-0.5 text-[16px] text-appleMuted"></ul>
+              </div>
+            </div>
+            <div id="feedbackRows" class="mt-2 grid grid-cols-1 gap-1 text-[16px]"></div>
+          </div>
+
+        </article>
+
+        <section id="metricsSection" class="grid grid-cols-4 gap-2">
+          <article class="rounded-2xl border border-appleLine/70 bg-white/85 p-2.5">
+            <p class="text-[15px] text-appleMuted">Projected conversion rate</p>
+            <p id="cvrValue" class="mt-0.5 text-[28px] font-semibold tracking-tight">0%</p>
+            <p id="cvrDelta" class="text-[15px] text-appleMuted">Likely uplift: +0%</p>
+          </article>
+          <article class="rounded-2xl border border-appleLine/70 bg-white/85 p-2.5">
+            <p class="text-[15px] text-appleMuted">Projected click-through rate</p>
+            <p id="ctrValue" class="mt-0.5 text-[28px] font-semibold tracking-tight">0%</p>
+            <p id="ctrDelta" class="text-[15px] text-appleMuted">Likely uplift: +0%</p>
+          </article>
+          <article class="rounded-2xl border border-appleLine/70 bg-white/85 p-2.5">
+            <p class="text-[15px] text-appleMuted">7-day sales impact</p>
+            <p id="salesValue" class="mt-0.5 text-[28px] font-semibold tracking-tight">$0</p>
+            <p id="salesDelta" class="text-[15px] text-appleMuted">Cautious case: $0</p>
+          </article>
+          <article class="rounded-2xl border border-appleLine/70 bg-white/85 p-2.5">
+            <p class="text-[15px] text-appleMuted">Rating sentiment trend</p>
+            <p id="sentimentValue" class="mt-0.5 text-[28px] font-semibold tracking-tight">Neutral</p>
+            <p id="sentimentDelta" class="text-[15px] text-emerald-600">No change</p>
+          </article>
+        </section>
+
+        <section id="projectionSection" class="grid min-h-0 flex-1 grid-cols-2 gap-2">
+          <article class="grid min-h-0 grid-rows-[auto_auto_auto_auto] gap-1 rounded-2xl border border-appleLine/70 bg-white/85 p-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-[15px] font-semibold">Variant projection trend</h3>
+              <span class="text-[15px] text-appleMuted">5-week sales projection by variant</span>
+            </div>
+
+            <div class="relative h-[196px]">
+              <canvas id="projectionChart" class="h-full w-full"></canvas>
+              <div id="chartTooltip" class="pointer-events-none absolute hidden rounded-md border border-appleLine bg-white px-2 py-1 text-[12px] text-appleText shadow-card"></div>
+            </div>
+            <div id="chartLegend" class="mt-0 flex flex-wrap items-center gap-3 text-[12px] text-appleMuted"></div>
+
+            <div class="rounded-xl bg-appleBg p-2">
+              <p class="text-[15px] text-appleMuted">30-day test outlook (selected variant vs current)</p>
+              <div id="forecastSummary" class="mt-1 text-[15px]"></div>
+              <div id="forecastRows" class="mt-1 grid grid-cols-1 gap-1 text-[15px]"></div>
+            </div>
+          </article>
+
+          <article class="grid min-h-0 grid-rows-[auto_auto_1fr] gap-2 rounded-2xl border border-appleLine/70 bg-white/85 p-2.5">
+            <div>
+              <h3 class="text-[15px] font-semibold">Decision trace</h3>
+              <ul id="loopStatus" class="mt-1 grid grid-cols-1 gap-1 text-[15px]"></ul>
+              <div class="mt-2 flex items-center gap-2">
+                <span id="weekLabel" class="text-[15px] text-appleMuted">Week 1</span>
+                <button id="nextWeekBtn" class="rounded-full border border-appleLine bg-white px-2 py-0.5 text-[15px]">Run next week</button>
+                <button id="resetWeekBtn" class="rounded-full border border-appleLine bg-white px-2 py-0.5 text-[15px]">Reset</button>
+              </div>
+            </div>
+
+            <div class="rounded-xl bg-appleBg p-2 text-[15px]">
+              <p class="text-appleMuted">Model assumptions</p>
+              <ul id="assumptions" class="mt-1 space-y-1"></ul>
+            </div>
+
+            <div class="rounded-xl bg-appleBg p-2 text-[15px]">
+              <p class="text-appleMuted">Safety checks</p>
+              <ul id="guardrails" class="mt-1 space-y-1"></ul>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <button id="adobeRibbonToggle" aria-label="Sponsored Adobe partnership options" class="fixed right-0 top-1/2 z-30 -translate-y-1/2 rounded-l-xl border border-appleLine bg-white px-2 py-2 shadow-card">
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 text-appleMuted">
+        <path fill="currentColor" d="M3 10.5a2.5 2.5 0 0 1 2.5-2.5H7l7-3v14l-7-3H5.5A2.5 2.5 0 0 1 3 13.5v-3zm13 8.2V5.3l1.8-.8A2 2 0 0 1 20.6 6v12a2 2 0 0 1-2.8 1.5L16 18.7zM7 15v-4h2v4H7z"/>
+      </svg>
+      <p class="mt-1 text-[10px] font-semibold tracking-wide text-appleMuted">AD</p>
+    </button>
+    <aside id="adobeRibbon" class="fixed right-0 top-0 z-40 h-full w-[340px] translate-x-full border-l border-appleLine bg-white/95 p-3 shadow-glass transition-transform duration-300">
+      <div class="flex items-center justify-between">
+        <p class="text-[16px] font-semibold text-appleText">Sponsored: Adobe Creative Boost</p>
+        <button id="adobeRibbonClose" class="rounded-full border border-appleLine px-2 py-0.5 text-[13px]">Close</button>
+      </div>
+      <p class="mt-1 text-[14px] text-appleMuted">
+        Pair persona-tailored descriptions with Adobe-generated images to improve listing relevance and conversion.
+      </p>
+      <div class="mt-2 grid grid-cols-1 gap-2">
+        <button id="adobeSubBtn" class="rounded-lg border border-appleLine bg-white p-2 text-left">
+          <p class="text-[14px] font-semibold">Subscription</p>
+          <p class="text-[13px] text-appleMuted">$49/mo • up to 30 persona image sets</p>
+          <p class="text-[13px] text-emerald-700">Est. +0.22 to CTR lift multiplier</p>
+        </button>
+        <button id="adobeOneTimeBtn" class="rounded-lg border border-appleLine bg-white p-2 text-left">
+          <p class="text-[14px] font-semibold">One-time pack</p>
+          <p class="text-[13px] text-appleMuted">$9 per persona image set</p>
+          <p class="text-[13px] text-emerald-700">Est. +0.08 to CTR lift multiplier</p>
+        </button>
+      </div>
+      <div class="mt-2 flex items-center justify-between">
+        <p id="adobePlanStatus" class="text-[13px] text-appleMuted">No Adobe image package selected.</p>
+        <button id="adobeClearBtn" class="rounded-full border border-appleLine px-2 py-0.5 text-[13px] text-appleMuted">Clear</button>
+      </div>
+    </aside>
+
+    <div id="personaModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/35 p-4">
+      <div class="w-full max-w-[560px] rounded-2xl border border-appleLine bg-white p-4 shadow-glass">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="text-[18px] font-semibold tracking-tight text-appleText">Generate your own persona</p>
+            <p class="mt-0.5 text-[14px] text-appleMuted">Tailor persona inputs for this prototype run.</p>
+          </div>
+          <button id="personaModalClose" class="rounded-full border border-appleLine px-2 py-0.5 text-[13px] text-appleMuted">Close</button>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-2 text-[14px]">
+          <label class="grid gap-1">
+            <span class="text-appleMuted">Segment</span>
+            <input id="personaSegment" type="text" class="rounded-lg border border-appleLine bg-white px-2 py-1.5" placeholder="e.g., College students" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-appleMuted">Primary context</span>
+            <input id="personaContext" type="text" class="rounded-lg border border-appleLine bg-white px-2 py-1.5" placeholder="e.g., Campus + commuting" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-appleMuted">Purchase driver</span>
+            <input id="personaDriver" type="text" class="rounded-lg border border-appleLine bg-white px-2 py-1.5" placeholder="e.g., Portability + style" />
+          </label>
+          <label class="grid gap-1 col-span-2">
+            <span class="text-appleMuted">Message tone</span>
+            <textarea id="personaTone" rows="2" class="rounded-lg border border-appleLine bg-white px-2 py-1.5" placeholder="e.g., Direct, modern, and utility-focused"></textarea>
+          </label>
+        </div>
+
+        <p class="mt-3 rounded-lg bg-appleBg px-2 py-1.5 text-[13px] text-appleMuted">
+          Prototype behavior: generated output maps to the existing College Students template so demo results stay consistent.
+        </p>
+
+        <div class="mt-3 flex items-center justify-end gap-2">
+          <button id="personaModalCancel" class="rounded-full border border-appleLine px-3 py-1 text-[13px] text-appleMuted">Cancel</button>
+          <button id="personaModalApply" class="rounded-full border border-appleBlue bg-appleBlue px-3 py-1 text-[13px] font-medium text-white">Generate persona</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const productData = [
+        {
+          id: 'P2',
+          name: 'Owala FreeSip Stainless Steel Bottle 32 oz, BPA-Free, Pink',
+          rating: 4.7,
+          reviews: 109000,
+          price: 34.99,
+          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=300&q=60',
+          currentTitle: 'Owala FreeSip Stainless Steel Water Bottle, 32 oz, Leak-Proof, BPA-Free',
+          currentDesc: 'Insulated reusable bottle with dual sip/chug lid and carry loop.',
+          baseCvr: 9.8,
+          baseCtr: 1.94,
+          weeklySessions: 68400,
+          asp: 34.99,
+          priority: 97,
+          conversionGap: 2.4,
+          reviewOpportunity: 3.1,
+          confidence: 91,
+          personaSignals: {
+            parents: { cvrLift: 0.24, ratingLift: 0.09, reviewTheme: 'School run convenience, leak-proof trust' },
+            students: { cvrLift: 0.08, ratingLift: 0.03, reviewTheme: 'Dorm + lecture daily use, trendy colorway' },
+            fitness: { cvrLift: 0.18, ratingLift: 0.06, reviewTheme: 'Gym hydration reliability, quick sip lid' }
+          }
+        },
+        {
+          id: 'P1',
+          name: 'thinkor Pink Gel Pens Black Ink, 7 Pc 0.5mm Quick Dry Fine Point',
+          rating: 4.7,
+          reviews: 102,
+          price: 8.99,
+          image: 'https://images.unsplash.com/photo-1583484963886-cfe2bff2945f?auto=format&fit=crop&w=300&q=60',
+          currentTitle: 'thinkor Pink Gel Pens 7 Pack Fine Point',
+          currentDesc: 'Quick-dry ink pens for school and office use.',
+          baseCvr: 6.2,
+          baseCtr: 1.23,
+          weeklySessions: 25400,
+          asp: 8.99,
+          priority: 76,
+          conversionGap: 1.8,
+          reviewOpportunity: 2.0,
+          confidence: 82,
+          personaSignals: {
+            parents: { cvrLift: 0.1, ratingLift: 0.05, reviewTheme: 'Homework and journaling bundle appeal' },
+            students: { cvrLift: 0.15, ratingLift: 0.04, reviewTheme: 'Aesthetic desk setup and smooth writing' },
+            fitness: { cvrLift: 0.02, ratingLift: 0.01, reviewTheme: 'Low relevance persona for this product' }
+          }
+        },
+        {
+          id: 'P3',
+          name: 'Grace & Stella Under Eye Mask, Vegan 24 Pairs, Pink',
+          rating: 4.3,
+          reviews: 43000,
+          price: 23.95,
+          image: 'https://images.unsplash.com/photo-1556229010-aa3f7ff66b24?auto=format&fit=crop&w=300&q=60',
+          currentTitle: 'Grace & Stella Under Eye Mask 24 Pairs',
+          currentDesc: 'Cooling and depuffing eye masks for self care.',
+          baseCvr: 7.1,
+          baseCtr: 1.48,
+          weeklySessions: 34800,
+          asp: 23.95,
+          priority: 70,
+          conversionGap: 1.4,
+          reviewOpportunity: 2.6,
+          confidence: 79,
+          personaSignals: {
+            parents: { cvrLift: 0.06, ratingLift: 0.03, reviewTheme: 'Quick self-care after long days' },
+            students: { cvrLift: 0.13, ratingLift: 0.05, reviewTheme: 'Affordable routine and gifting value' },
+            fitness: { cvrLift: 0.09, ratingLift: 0.02, reviewTheme: 'Post-workout recovery and refresh angle' }
+          }
+        },
+        {
+          id: 'P4',
+          name: 'Stardrops Pink Stuff All Purpose Cleaning Paste',
+          rating: 4.4,
+          reviews: 234700,
+          price: 4.79,
+          image: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=300&q=60',
+          currentTitle: 'Stardrops Pink Stuff All Purpose Cleaning Paste',
+          currentDesc: 'Multi-surface cleaning paste for stubborn marks.',
+          baseCvr: 8.4,
+          baseCtr: 1.67,
+          weeklySessions: 90200,
+          asp: 4.79,
+          priority: 68,
+          conversionGap: 1.1,
+          reviewOpportunity: 2.9,
+          confidence: 76,
+          personaSignals: {
+            parents: { cvrLift: 0.11, ratingLift: 0.07, reviewTheme: 'Fast cleanup for kid messes' },
+            students: { cvrLift: 0.04, ratingLift: 0.02, reviewTheme: 'Dorm cleaning convenience' },
+            fitness: { cvrLift: 0.03, ratingLift: 0.01, reviewTheme: 'Low persona relevance' }
+          }
+        }
+      ];
+
+      const state = {
+        active: productData[0],
+        objective: 'brand',
+        sortBy: 'priority',
+        queueCompact: false,
+        loopStage: 1,
+        simWeek: 1,
+        auditTrail: [],
+        adobePlan: 'none',
+        adobeRibbonOpen: false,
+        strategy: {
+          persona: 'parents',
+          brandVoice: 6,
+          socialProof: 7,
+          seasonal: 5,
+          split: 50
+        },
+        customPersona: {
+          segment: 'College students',
+          context: 'Campus + commuting',
+          driver: 'Portability + style',
+          tone: 'Direct and modern'
+        },
+        customPersonaConfigured: false,
+        awaitingPersonaGeneration: false,
+        isGeneratingPersona: false,
+        personaGenerationTimer: null,
+        pendingPersonaVariant: null,
+        selectedVariant: 0
+      };
+
+      const el = {
+        products: document.getElementById('products'),
+        mainGrid: document.getElementById('mainGrid'),
+        leftPane: document.getElementById('leftPane'),
+        queueToggleBtn: document.getElementById('queueToggleBtn'),
+        nextWeekBtn: document.getElementById('nextWeekBtn'),
+        resetWeekBtn: document.getElementById('resetWeekBtn'),
+        weekLabel: document.getElementById('weekLabel'),
+        objective: document.getElementById('objective'),
+        sortBy: document.getElementById('sortBy'),
+        headline: document.getElementById('agentHeadline'),
+        confidence: document.getElementById('confidence'),
+        reasonCode: document.getElementById('reasonCode'),
+        counterfactual: document.getElementById('counterfactual'),
+        cvrValue: document.getElementById('cvrValue'),
+        cvrDelta: document.getElementById('cvrDelta'),
+        ctrValue: document.getElementById('ctrValue'),
+        ctrDelta: document.getElementById('ctrDelta'),
+        salesValue: document.getElementById('salesValue'),
+        salesDelta: document.getElementById('salesDelta'),
+        sentimentValue: document.getElementById('sentimentValue'),
+        sentimentDelta: document.getElementById('sentimentDelta'),
+        loopStatus: document.getElementById('loopStatus'),
+        assumptions: document.getElementById('assumptions'),
+        guardrails: document.getElementById('guardrails'),
+        variants: document.getElementById('variants'),
+        personaLoading: document.getElementById('personaLoading'),
+        feedbackRows: document.getElementById('feedbackRows'),
+        evidenceBlock: document.getElementById('evidenceBlock'),
+        metricsSection: document.getElementById('metricsSection'),
+        projectionSection: document.getElementById('projectionSection'),
+        forecastSummary: document.getElementById('forecastSummary'),
+        forecastRows: document.getElementById('forecastRows'),
+        adobeSubBtn: document.getElementById('adobeSubBtn'),
+        adobeOneTimeBtn: document.getElementById('adobeOneTimeBtn'),
+        adobeClearBtn: document.getElementById('adobeClearBtn'),
+        adobePlanStatus: document.getElementById('adobePlanStatus'),
+        adobeRibbon: document.getElementById('adobeRibbon'),
+        adobeRibbonToggle: document.getElementById('adobeRibbonToggle'),
+        adobeRibbonClose: document.getElementById('adobeRibbonClose'),
+        variantPreviewImage: document.getElementById('variantPreviewImage'),
+        variantPreviewTag: document.getElementById('variantPreviewTag'),
+        variantPreviewTitle: document.getElementById('variantPreviewTitle'),
+        variantPreviewDescription: document.getElementById('variantPreviewDescription'),
+        variantPreviewBullets: document.getElementById('variantPreviewBullets'),
+        personaModal: document.getElementById('personaModal'),
+        personaModalClose: document.getElementById('personaModalClose'),
+        personaModalCancel: document.getElementById('personaModalCancel'),
+        personaModalApply: document.getElementById('personaModalApply'),
+        personaSegment: document.getElementById('personaSegment'),
+        personaContext: document.getElementById('personaContext'),
+        personaDriver: document.getElementById('personaDriver'),
+        personaTone: document.getElementById('personaTone'),
+        chartLegend: document.getElementById('chartLegend'),
+        chartTooltip: document.getElementById('chartTooltip'),
+        chart: document.getElementById('projectionChart')
+      };
+
+      const ctx = el.chart.getContext('2d');
+      let chartMeta = { points: [], visibleWeeks: 1 };
+
+      function money(v) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+      }
+
+      function weekFactorFor(weekNumber) {
+        return 1 + (weekNumber - 1) * 0.04;
+      }
+
+      const BACK_TO_SCHOOL_SALE_DATE = 'Aug 15, 2026';
+
+      function seasonalEventMultiplier(persona, weekNumber) {
+        if (weekNumber !== 2) return 1;
+        if (persona === 'students') return 1.28;
+        if (persona === 'parents') return 1.12;
+        return 1;
+      }
+
+      function personaLabel(key) {
+        if (key === 'parents') return 'Busy parents';
+        if (key === 'students') return 'College students';
+        return 'Fitness shoppers';
+      }
+
+      function sortedProducts() {
+        return [...productData].sort((a, b) => {
+          if (state.sortBy === 'conversionGap') return b.conversionGap - a.conversionGap;
+          if (state.sortBy === 'reviews') return b.reviewOpportunity - a.reviewOpportunity;
+          if (state.sortBy === 'priceHigh') return b.price - a.price;
+          return b.priority - a.priority;
+        });
+      }
+
+      function renderProducts() {
+        el.products.innerHTML = sortedProducts()
+          .map((p) => {
+            const meta = state.queueCompact
+              ? ''
+              : `<div class="mt-0.5 flex gap-1 text-[15px] text-appleMuted"><span>${p.rating}★</span><span>(${new Intl.NumberFormat('en-US', { notation: 'compact' }).format(p.reviews)})</span></div>`;
+            const rightTag = state.queueCompact
+              ? ''
+              : `<span class="text-[15px] text-appleMuted">Gap ${p.conversionGap.toFixed(1)}%</span>`;
+            return `
+              <article data-id="${p.id}" class="product ${state.active.id === p.id ? 'active' : ''} grid cursor-pointer grid-cols-[58px_1fr] gap-1.5 rounded-2xl border border-appleLine/80 bg-white/80 p-2 transition hover:-translate-y-[1px] hover:shadow-card">
+                <img src="${p.image}" alt="${p.name}" class="h-[58px] w-[58px] rounded-xl border border-appleLine/80 object-cover" />
+                <div class="min-w-0">
+                  <div class="flex items-center justify-between gap-2">
+                    <h3 class="truncate text-[16px] font-semibold">${p.name}</h3>
+                    <span class="rounded-full bg-appleBlueSoft px-2 py-[1px] text-[15px] font-semibold text-appleBlue">P${p.priority}</span>
+                  </div>
+                  ${meta}
+                  <div class="mt-0 flex items-center justify-between">
+                    <p class="text-[17px] font-semibold">$${p.price.toFixed(2)}</p>
+                    ${rightTag}
+                  </div>
+                </div>
+              </article>
+            `;
+          })
+          .join('');
+
+        document.querySelectorAll('.product').forEach((card) => {
+          card.addEventListener('click', () => {
+            const picked = productData.find((p) => p.id === card.dataset.id);
+            if (!picked) return;
+            if (state.personaGenerationTimer) clearTimeout(state.personaGenerationTimer);
+            state.personaGenerationTimer = null;
+            state.active = picked;
+            state.selectedVariant = 0;
+            state.awaitingPersonaGeneration = false;
+            state.isGeneratingPersona = false;
+            state.simWeek = 1;
+            if (picked.id === 'P2') state.strategy.persona = 'parents';
+            render();
+          });
+        });
+      }
+
+      function createVariants(product) {
+        const selectedPersona = state.strategy.persona;
+        const brandVoiceFactor = 1 + (state.strategy.brandVoice - 5) * 0.015;
+        const socialProofFactor = 1 + (state.strategy.socialProof - 5) * 0.02;
+        const seasonalFactor = 1 + (state.strategy.seasonal - 5) * 0.017;
+        const adobeImageBoost = state.adobePlan === 'subscription' ? 1.22 : state.adobePlan === 'one_time' ? 1.08 : 1;
+        const productLabel = product.name.split(',')[0];
+        const baseBenefit = product.currentDesc.replace(/\.$/, '');
+
+        const templates = [
+          {
+            label: 'Variant A',
+            persona: 'parents',
+            title: `${productLabel}, Family-Routine Friendly, Reliable Daily Use`,
+            description:
+              `Built for busy households and school/work transitions, this version emphasizes trust, ease of use, and fewer daily frictions. ${baseBenefit}.`,
+            bullets: [
+              'Highlights dependable day-to-day use and low-hassle routines.',
+              'Frames value in terms families care about: consistency and convenience.',
+              'Keeps copy focused on practical, trust-building benefits.'
+            ],
+            // heroImage: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=80',
+            heroImage: 'busy-single-mother-drinking-cup-600nw-2463199199.webp',
+            imageStyle: 'Parent commute lifestyle',
+            aggressiveness: 1.02
+          },
+          {
+            label: 'Variant B',
+            persona: 'students',
+            title: `${productLabel}, Campus and On-the-Go Convenience`,
+            description:
+              `Positioned for students and young professionals, this version stresses portability, style, and day-long convenience. ${baseBenefit}.`,
+            bullets: [
+              'Prioritizes clarity for fast-scanning shoppers on mobile.',
+              'Uses modern, utility-first language tied to everyday routines.',
+              'Balances product utility with relevance to trend-conscious buyers.'
+            ],
+            heroImage: 'https://images.pexels.com/photos/1438081/pexels-photo-1438081.jpeg?auto=compress&cs=tinysrgb&w=1200',
+            imageStyle: 'Campus lifestyle + feature callouts',
+            aggressiveness: 0.94
+          },
+          {
+            label: 'Variant C',
+            persona: 'fitness',
+            title: `${productLabel}, Performance-Focused for Active Use`,
+            description:
+              `Designed for active shoppers, this version highlights performance outcomes, durability, and confidence during demanding use. ${baseBenefit}.`,
+            bullets: [
+              'Emphasizes readiness under high-frequency, high-intensity use.',
+              'Connects features to durability and repeat-use confidence.',
+              'Uses direct language to support conversion-focused shoppers.'
+            ],
+            heroImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80',
+            imageStyle: 'Outdoor activity hero image',
+            aggressiveness: 1.09
+          }
+        ];
+
+        return templates.map((t, idx) => {
+          const baseSignal = product.personaSignals[t.persona];
+          const reviewPolicy = reviewPolicyForPersona(product, t.persona);
+          const personaMatchBoost = t.persona === selectedPersona ? 1.12 : 0.96;
+          const reviewFeedbackBoost = reviewPolicy.mode === 'promote' ? 1.1 : 1.03;
+          const signal = baseSignal.cvrLift * t.aggressiveness * brandVoiceFactor * socialProofFactor * seasonalFactor * reviewFeedbackBoost;
+          const ctrLift = signal * 0.42 * personaMatchBoost * adobeImageBoost + (idx === 2 ? 0.01 : 0);
+          const cvrLift = signal * personaMatchBoost;
+          const predictedCtr = product.baseCtr * (1 + ctrLift);
+          const predictedCvr = product.baseCvr * (1 + cvrLift);
+          const projectedOrders = product.weeklySessions * (predictedCtr / 100) * (predictedCvr / 100);
+          const projectedSales = projectedOrders * product.asp;
+          const cautiousSales = projectedSales * 0.9;
+          const sentimentLift = baseSignal.ratingLift * (0.8 + state.strategy.socialProof / 25);
+          const confidenceByPersona = { parents: -2, students: 3, fitness: -1 };
+          const variantConfidence = Math.max(
+            70,
+            Math.min(99, Math.round(product.confidence + (confidenceByPersona[t.persona] || 0) + idx * 0.5))
+          );
+
+          return {
+            ...t,
+            reviewPolicy,
+            description: `${t.description} ${reviewPolicy.note}`,
+            ctrLift,
+            cvrLift,
+            predictedCtr,
+            predictedCvr,
+            projectedSales,
+            cautiousSales,
+            sentimentLift,
+            confidence: variantConfidence,
+            score: scoreVariant({ cvrLift, sentimentLift, projectedSales })
+          };
+        });
+      }
+
+      function reviewPolicyForPersona(product, persona) {
+        const base = product.personaSignals[persona];
+        const theme = base.reviewTheme;
+        if (base.ratingLift >= 0.05) {
+          return {
+            mode: 'promote',
+            note: `Recent positive reviews emphasize "${theme}", so this variant amplifies that benefit.`
+          };
+        }
+        return {
+          mode: 'fix',
+          note: `Reviews are mixed on "${theme}", so this variant clarifies expectations and trust signals.`
+        };
+      }
+
+      function scoreVariant(v) {
+        if (state.objective === 'conversion') return v.cvrLift * 0.7 + (v.projectedSales / 100000) * 0.25 + v.sentimentLift * 0.05;
+        if (state.objective === 'seasonal') return v.cvrLift * 0.45 + (v.projectedSales / 100000) * 0.3 + v.sentimentLift * 0.25;
+        return v.cvrLift * 0.5 + (v.projectedSales / 100000) * 0.35 + v.sentimentLift * 0.15;
+      }
+
+      function rankedVariants(product) {
+        return createVariants(product);
+      }
+
+      function sentimentLabel(lift) {
+        if (lift > 0.06) return 'Improving';
+        if (lift > 0.03) return 'Slightly improving';
+        return 'Stable';
+      }
+
+      function guardrailsFor(product, variant) {
+        const titleLengthPass = variant.title.length <= 150;
+        const claimPass = !/best|guaranteed|instant/i.test(variant.description);
+        const imagePolicyPass = !/badge/i.test(variant.imageStyle) || state.strategy.socialProof <= 8;
+        return [
+          { label: 'Title length under 150 chars', pass: titleLengthPass, value: `${variant.title.length}` },
+          { label: 'Policy-safe claims in description', pass: claimPass, value: claimPass ? 'Safe' : 'Review' },
+          { label: 'Image policy confidence', pass: imagePolicyPass, value: imagePolicyPass ? 'Pass' : 'Needs review' }
+        ];
+      }
+
+      function renderLoopStatus() {
+        state.loopStage = Math.min(5, state.simWeek);
+        const steps = [
+          'Observe context: product metrics + review language',
+          'Select/generate variant: title, description, image',
+          'Serve variant to target persona traffic',
+          'Measure conversion + rating signals',
+          'Update next recommendation'
+        ];
+
+        el.loopStatus.innerHTML = steps
+          .map((s, i) => {
+            const active = i + 1 === state.loopStage;
+            const done = i + 1 < state.loopStage;
+            return `<li class="rounded-lg border border-appleLine/60 px-2 py-1 ${active ? 'bg-appleBlueSoft text-appleBlue' : done ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-appleMuted'}">${done ? 'Done' : active ? 'Now' : 'Next'}: ${s}</li>`;
+          })
+          .join('');
+        el.weekLabel.textContent = `Week ${state.simWeek}`;
+      }
+
+      function applyQueueView() {
+        if (state.queueCompact) {
+          el.mainGrid.style.gridTemplateColumns = '15% 85%';
+          el.queueToggleBtn.textContent = '⇥';
+          el.queueToggleBtn.title = 'Expand queue';
+        } else {
+          el.mainGrid.style.gridTemplateColumns = '34% 66%';
+          el.queueToggleBtn.textContent = '⇤';
+          el.queueToggleBtn.title = 'Compact queue';
+        }
+        el.mainGrid.style.columnGap = '12px';
+      }
+
+      function personaSummary(persona) {
+        if (persona === 'parents') {
+          return 'Busy parents prioritize reliability, convenience, and low-friction daily routines. This variant emphasizes trust and practicality.';
+        }
+        if (persona === 'students') {
+          return 'College students value portability, style relevance, and clear utility. This variant focuses on fast comprehension and everyday fit.';
+        }
+        return 'Performance-oriented shoppers look for durability, efficiency, and confidence under repeat use. This variant emphasizes outcomes and resilience.';
+      }
+
+      function targetPersonaForGoal(goal) {
+        if (goal === 'brand') return 'students';
+        if (goal === 'seasonal') return 'parents';
+        return 'fitness';
+      }
+
+      function goalReason(goal) {
+        if (goal === 'brand') {
+          return 'Brand alignment favors college students because this segment reacts strongly to visual identity, relevance cues, and social signaling.';
+        }
+        if (goal === 'seasonal') {
+          return 'Holiday/seasonal focus favors busy parents due to gifting and household planning cycles where convenience and trust are key purchase triggers.';
+        }
+        return 'Highest-conversion mode favors performance-oriented shoppers because direct utility and outcome language tends to convert quickly for this SKU.';
+      }
+
+      function renderAdobeUpsell() {
+        const activeClass = 'rounded-lg border border-appleBlue bg-appleBlueSoft p-2 text-left';
+        const idleClass = 'rounded-lg border border-appleLine bg-white p-2 text-left';
+        el.adobeSubBtn.className = state.adobePlan === 'subscription' ? activeClass : idleClass;
+        el.adobeOneTimeBtn.className = state.adobePlan === 'one_time' ? activeClass : idleClass;
+        el.adobeRibbon.classList.toggle('translate-x-full', !state.adobeRibbonOpen);
+
+        if (state.adobePlan === 'subscription') {
+          el.adobePlanStatus.textContent = 'Adobe subscription active: persona image sets enabled for this test.';
+        } else if (state.adobePlan === 'one_time') {
+          el.adobePlanStatus.textContent = 'One-time Adobe image set selected for this persona.';
+        } else {
+          el.adobePlanStatus.textContent = 'No Adobe image package selected.';
+        }
+      }
+
+      function renderThirtyDayForecast(product, selected) {
+        const baseWeeklyOrders = product.weeklySessions * (product.baseCtr / 100) * (product.baseCvr / 100);
+        const variantWeeklyOrders = product.weeklySessions * (selected.predictedCtr / 100) * (selected.predictedCvr / 100);
+        const treatmentShare = state.strategy.split / 100;
+        const checkpoints = [7, 14, 21, 30];
+
+        const rows = checkpoints.map((d) => {
+          const currentSales = (baseWeeklyOrders * (d / 7)) * product.asp;
+          let blendedOrders = 0;
+          let remainingDays = d;
+          let week = 1;
+          while (remainingDays > 0) {
+            const daysInWeek = Math.min(7, remainingDays);
+            const seasonalMultiplier = seasonalEventMultiplier(selected.persona, week);
+            const weekOrders = (variantWeeklyOrders * seasonalMultiplier * treatmentShare + baseWeeklyOrders * (1 - treatmentShare)) * (daysInWeek / 7);
+            blendedOrders += weekOrders;
+            remainingDays -= daysInWeek;
+            week += 1;
+          }
+          const variantSales = blendedOrders * product.asp;
+          const lift = variantSales - currentSales;
+          return { day: d, currentSales, variantSales, lift };
+        });
+
+        const last = rows[rows.length - 1];
+        const liftPct = (last.lift / Math.max(1, last.currentSales)) * 100;
+
+        el.forecastSummary.innerHTML = `<span class="text-appleText">By day 30, projected sales at <strong>${state.strategy.split}%</strong> treatment are <strong>${money(last.variantSales)}</strong> vs <strong>${money(last.currentSales)}</strong> baseline (${liftPct >= 0 ? '+' : ''}${liftPct.toFixed(1)}%).</span>`;
+        el.forecastRows.innerHTML = rows
+          .map((r) => {
+            return `<div class="grid grid-cols-[16%_30%_30%_24%] gap-2 rounded-lg bg-white px-2 py-1"><span>D${r.day}</span><span>Current ${money(r.currentSales)}</span><span>Variant ${money(r.variantSales)}</span><span class="${r.lift >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${r.lift >= 0 ? '+' : ''}${money(r.lift)}</span></div>`;
+          })
+          .join('');
+      }
+
+      function weeklyVariantSeries(variants) {
+        const weeks = [1, 2, 3, 4, 5];
+        return variants.map((v) => ({
+          label: v.label,
+          points: weeks.map((w) => v.projectedSales * weekFactorFor(w) * seasonalEventMultiplier(v.persona, w))
+        }));
+      }
+
+      function renderChartLegend(series, colors) {
+        el.chartLegend.innerHTML = series
+          .map(
+            (s, idx) =>
+              `<span class="inline-flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-full" style="background:${colors[idx % colors.length]}"></span>${s.label}</span>`
+          )
+          .join('');
+      }
+
+      function drawChart(product, variants) {
+        const dpr = window.devicePixelRatio || 1;
+        const width = el.chart.clientWidth;
+        const height = el.chart.clientHeight;
+        el.chart.width = Math.max(1, Math.floor(width * dpr));
+        el.chart.height = Math.max(1, Math.floor(height * dpr));
+        el.chartTooltip.classList.add('hidden');
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const pad = { top: 14, right: 18, bottom: 14, left: 72 };
+        const chartW = width - pad.left - pad.right;
+        const chartH = height - pad.top - pad.bottom;
+
+        const series = weeklyVariantSeries(variants);
+        const visibleWeeks = Math.max(1, Math.min(5, state.simWeek));
+        const visibleSeries = series.map((s) => ({ ...s, points: s.points.slice(0, visibleWeeks) }));
+        const allY = visibleSeries.flatMap((s) => s.points);
+        const maxY = Math.max(...allY) * 1.1;
+        const minY = Math.min(...allY) * 0.9;
+        const colors = ['#0071e3', '#34c759', '#ff9f0a'];
+        renderChartLegend(visibleSeries, colors);
+        chartMeta = { points: [], visibleWeeks };
+
+        ctx.strokeStyle = '#e5e5ea';
+        for (let i = 0; i < 5; i++) {
+          const y = pad.top + (chartH * i) / 4;
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(width - pad.right, y);
+          ctx.stroke();
+        }
+
+        const scaleY = (v) => pad.top + chartH - ((v - minY) / (maxY - minY || 1)) * chartH;
+
+        visibleSeries.forEach((s, idx) => {
+          ctx.beginPath();
+          s.points.forEach((v, i) => {
+            const x = s.points.length === 1 ? pad.left : pad.left + (i * chartW) / (s.points.length - 1);
+            const y = scaleY(v);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            chartMeta.points.push({ x, y, value: v, week: i + 1, label: s.label, color: colors[idx % colors.length] });
+          });
+          ctx.strokeStyle = colors[idx % colors.length];
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+
+          s.points.forEach((v, i) => {
+            const x = s.points.length === 1 ? pad.left : pad.left + (i * chartW) / (s.points.length - 1);
+            const y = scaleY(v);
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = colors[idx % colors.length];
+            ctx.fill();
+          });
+        });
+
+        ['W1', 'W2', 'W3', 'W4', 'W5'].slice(0, visibleWeeks).forEach((w, i) => {
+          const x = visibleWeeks === 1 ? pad.left : pad.left + (i * chartW) / (visibleWeeks - 1);
+          ctx.fillStyle = '#6e6e73';
+          ctx.font = '12px -apple-system';
+          ctx.textAlign = 'center';
+          ctx.fillText(w, x, height - 2);
+        });
+
+        if (visibleWeeks >= 2) {
+          const saleX = visibleWeeks === 1 ? pad.left : pad.left + chartW / (visibleWeeks - 1);
+          ctx.save();
+          ctx.setLineDash([4, 3]);
+          ctx.strokeStyle = '#b0b0b5';
+          ctx.beginPath();
+          ctx.moveTo(saleX, pad.top);
+          ctx.lineTo(saleX, pad.top + chartH);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#6e6e73';
+          ctx.font = '11px -apple-system';
+          ctx.textAlign = 'left';
+          ctx.fillText(`Back-to-school sale (${BACK_TO_SCHOOL_SALE_DATE})`, Math.min(width - 180, saleX + 6), pad.top + 12);
+          ctx.restore();
+        }
+
+        const yTicks = 4;
+        for (let i = 0; i <= yTicks; i++) {
+          const value = minY + ((maxY - minY) * (yTicks - i)) / yTicks;
+          const y = pad.top + (chartH * i) / yTicks;
+          ctx.fillStyle = '#6e6e73';
+          ctx.font = '11px -apple-system';
+          ctx.textAlign = 'right';
+          ctx.fillText(money(value), pad.left - 12, y + 4);
+        }
+
+        ctx.fillStyle = '#6e6e73';
+        ctx.font = '11px -apple-system';
+        ctx.textAlign = 'center';
+        ctx.fillText('Week', pad.left + chartW / 2, height - 1);
+
+        ctx.save();
+        ctx.translate(12, pad.top + chartH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6e6e73';
+        ctx.font = '11px -apple-system';
+        ctx.fillText('Weekly sales (USD)', 0, 0);
+        ctx.restore();
+      }
+
+      function nearestChartPoint(mouseX, mouseY) {
+        let best = null;
+        let bestDist = Infinity;
+        chartMeta.points.forEach((p) => {
+          const dx = p.x - mouseX;
+          const dy = p.y - mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = p;
+          }
+        });
+        if (bestDist > 28) return null;
+        return best;
+      }
+
+      function reviewSummaryForVariant(selected, product) {
+        const theme = product.personaSignals[selected.persona].reviewTheme;
+        if (selected.persona === 'parents') {
+          return {
+            summary:
+              `Family buyers repeatedly value low-friction reliability and convenience. Review clusters for this SKU center on: ${theme}.`,
+            positive: 'Most popular positive: "Practical for busy routines and easy to use every day."',
+            complaint: 'Most common complaint: "Some buyers want clearer expectation-setting in the listing copy."',
+            topics: [
+              ['Convenience', '2.8K'],
+              ['Reliability', '2.4K'],
+              ['Expectation clarity', '1.7K'],
+              ['Daily routine fit', '1.5K']
+            ]
+          };
+        }
+        if (selected.persona === 'students') {
+          return {
+            summary:
+              `Student and early-career buyers react to portability, visual appeal, and simple utility. Review themes observed: ${theme}.`,
+            positive: 'Most popular positive: "Fits my day and feels like a smart buy for the price."',
+            complaint: 'Most common complaint: "Some users say feature value is not obvious from the current title/description."',
+            topics: [
+              ['Portability', '2.1K'],
+              ['Style relevance', '1.9K'],
+              ['Value clarity', '1.6K'],
+              ['Use-case clarity', '1.3K']
+            ]
+          };
+        }
+        return {
+          summary:
+            `Performance-oriented buyers prioritize durable outcomes and confidence under repeat use. Review emphasis for this SKU: ${theme}.`,
+          positive: 'Most popular positive: "Works reliably when I need it most and holds up over time."',
+          complaint: 'Most common complaint: "Some reviews ask for stronger upfront detail on performance expectations."',
+          topics: [
+            ['Performance', '2.2K'],
+            ['Durability', '1.8K'],
+            ['Trust signals', '1.6K'],
+            ['Expectation setting', '1.2K']
+          ]
+        };
+      }
+
+      function setVariantPreviewImage(primaryUrl, fallbackUrl) {
+        const queue = [primaryUrl, fallbackUrl, 'https://picsum.photos/1200/700?grayscale'].filter(Boolean);
+        let idx = 0;
+        el.variantPreviewImage.onerror = () => {
+          idx += 1;
+          if (idx < queue.length) el.variantPreviewImage.src = queue[idx];
+        };
+        el.variantPreviewImage.src = queue[0];
+      }
+
+      function openPersonaModal(variantIndex) {
+        state.pendingPersonaVariant = variantIndex;
+        el.personaSegment.value = state.customPersona.segment;
+        el.personaContext.value = state.customPersona.context;
+        el.personaDriver.value = state.customPersona.driver;
+        el.personaTone.value = state.customPersona.tone;
+        el.personaModal.classList.remove('hidden');
+        el.personaModal.classList.add('flex');
+      }
+
+      function closePersonaModal() {
+        state.pendingPersonaVariant = null;
+        el.personaModal.classList.add('hidden');
+        el.personaModal.classList.remove('flex');
+      }
+
+      function renderInsights() {
+        const product = state.active;
+        const variants = rankedVariants(product);
+        if (state.selectedVariant >= variants.length) state.selectedVariant = 0;
+        const selected = variants[state.selectedVariant] || variants[0];
+        const selectedPolicy = selected.reviewPolicy;
+        const studentIdx = variants.findIndex((v) => v.persona === 'students');
+        const displayOrder = variants.map((_, idx) => idx).filter((idx) => idx !== studentIdx);
+        if (studentIdx >= 0) displayOrder.push(studentIdx);
+        const awaitingPersona =
+          state.awaitingPersonaGeneration && selected.persona === 'students' && !state.customPersonaConfigured;
+        const generatingPersona = state.isGeneratingPersona && selected.persona === 'students';
+
+        el.evidenceBlock.classList.toggle('hidden', awaitingPersona || generatingPersona);
+        el.metricsSection.classList.toggle('hidden', awaitingPersona || generatingPersona);
+        el.projectionSection.classList.toggle('hidden', awaitingPersona || generatingPersona);
+        el.personaLoading.classList.toggle('hidden', !generatingPersona);
+        el.personaLoading.classList.toggle('flex', generatingPersona);
+
+        if (awaitingPersona) {
+          el.reasonCode.textContent =
+            'Complete persona generation to unlock evidence, projections, and forecast details for this custom path.';
+          el.counterfactual.textContent =
+            'No projection shown yet. Generate the persona to run this scenario against the current listing baseline.';
+        } else if (generatingPersona) {
+          el.reasonCode.textContent = 'Generating persona...';
+          el.counterfactual.textContent = 'Running persona synthesis and scenario scoring.';
+        }
+        const weekFactor = weekFactorFor(state.simWeek);
+        const seasonalMultiplier = seasonalEventMultiplier(selected.persona, state.simWeek);
+        const weekCtr = selected.predictedCtr * weekFactor * seasonalMultiplier;
+        const weekCvr = selected.predictedCvr * weekFactor * seasonalMultiplier;
+        const weekSales = selected.projectedSales * weekFactor * seasonalMultiplier;
+        const weekCautious = selected.cautiousSales * (1 + (state.simWeek - 1) * 0.025) * seasonalMultiplier;
+
+        el.headline.textContent = `Test ${personaLabel(selected.persona)} decision variant on ${product.id}`;
+        el.confidence.textContent = `${selected.confidence}%`;
+
+        el.cvrValue.textContent = `${weekCvr.toFixed(2)}%`;
+        el.cvrDelta.textContent = `Likely uplift: +${(selected.cvrLift * 100 * weekFactor * seasonalMultiplier).toFixed(1)}% vs current`;
+        el.ctrValue.textContent = `${weekCtr.toFixed(2)}%`;
+        el.ctrDelta.textContent = `Likely uplift: +${(selected.ctrLift * 100 * weekFactor * seasonalMultiplier).toFixed(1)}% vs current`;
+        el.salesValue.textContent = money(weekSales);
+        el.salesDelta.textContent = `Cautious case: ${money(weekCautious)}`;
+        el.sentimentValue.textContent = sentimentLabel(selected.sentimentLift);
+        el.sentimentDelta.textContent = `Rating trend +${selected.sentimentLift.toFixed(2)} expected`;
+
+        const objectiveLabel =
+          state.objective === 'brand' ? 'better brand alignment' : state.objective === 'seasonal' ? 'holiday / seasonal deals' : 'highest conversion now';
+        const reviewTheme = product.personaSignals[selected.persona].reviewTheme;
+        const reviewActionText = selectedPolicy.mode === 'promote' ? 'promotes what buyers praise most' : 'addresses weaker review themes';
+        const adobeSuffix =
+          state.adobePlan === 'subscription'
+            ? ' Adobe subscription images are boosting creative-match confidence.'
+            : state.adobePlan === 'one_time'
+            ? ' One-time Adobe persona images are applied for this test.'
+            : '';
+        const customPersonaNote =
+          selected.persona === 'students' && state.customPersonaConfigured
+            ? ` Custom persona input: ${state.customPersona.segment}; ${state.customPersona.context}; ${state.customPersona.driver}; ${state.customPersona.tone}. Prototype maps this to the validated College Students template.`
+            : '';
+        if (!awaitingPersona && !generatingPersona) {
+          el.reasonCode.textContent = `Chosen for ${objectiveLabel}. ${goalReason(state.objective)} This variant ${reviewActionText} from reviews: "${reviewTheme}".${adobeSuffix}${customPersonaNote}`;
+        }
+        const treatmentShare = state.strategy.split / 100;
+        const baseWeeklyOrders = product.weeklySessions * (product.baseCtr / 100) * (product.baseCvr / 100);
+        const base30Sales = baseWeeklyOrders * product.asp * (30 / 7);
+        const selectedWeeklyOrders = product.weeklySessions * (selected.predictedCtr / 100) * (selected.predictedCvr / 100);
+        let selected30Orders = 0;
+        let remainingDays = 30;
+        let weekIdx = 1;
+        while (remainingDays > 0) {
+          const daysInWeek = Math.min(7, remainingDays);
+          const seasonalWeekMultiplier = seasonalEventMultiplier(selected.persona, weekIdx);
+          const blendedWeekOrders = (selectedWeeklyOrders * seasonalWeekMultiplier * treatmentShare + baseWeeklyOrders * (1 - treatmentShare)) * (daysInWeek / 7);
+          selected30Orders += blendedWeekOrders;
+          remainingDays -= daysInWeek;
+          weekIdx += 1;
+        }
+        const selected30Sales = selected30Orders * product.asp;
+        const missedSales = Math.max(0, selected30Sales - base30Sales);
+        const missedPct = (missedSales / Math.max(1, base30Sales)) * 100;
+        const counterfactualPrefix =
+          selected.persona === 'parents'
+            ? 'If you keep generic content, family trust and convenience cues stay underexposed.'
+            : selected.persona === 'students'
+            ? 'If you keep generic content, student relevance cues like style, portability, and value stay underexposed.'
+            : 'If you keep generic content, performance and durability cues for active buyers stay underexposed.';
+        if (!awaitingPersona && !generatingPersona) {
+          el.counterfactual.textContent = `${counterfactualPrefix} 30-day projection: about ${money(missedSales)} (${missedPct.toFixed(1)}%) less sales than testing ${selected.label}.`;
+        }
+
+        el.assumptions.innerHTML = [
+          `Model uses ratings/reviews by persona segment to train style and benefit emphasis.`,
+          `Adobe-generated images are scored for visual relevance before launch.`,
+          `Variant forecast combines CTR x CVR lift with session volume and ASP.`,
+          `Likely/cautious outcomes reflect model uncertainty and traffic mix shifts.`
+        ]
+          .map((x) => `<li>• ${x}</li>`)
+          .join('');
+
+        const guardrails = guardrailsFor(product, selected);
+        el.guardrails.innerHTML = guardrails
+          .map(
+            (g) => `<li class="flex items-center justify-between"><span>${g.label}</span><span class="font-medium ${g.pass ? 'text-emerald-600' : 'text-rose-600'}">${g.pass ? 'Pass' : 'Review'} (${g.value})</span></li>`
+          )
+          .join('');
+
+        el.variants.innerHTML = displayOrder
+          .map((variantIndex) => {
+            const v = variants[variantIndex];
+            const isPersonaGenerator = v.persona === 'students';
+            const titleText = isPersonaGenerator
+              ? 'Generate your own persona'
+              : `${variantIndex + 1}. ${v.label} (${personaLabel(v.persona)})`;
+            const bodyText = isPersonaGenerator
+              ? state.customPersonaConfigured
+                ? `Configured: ${state.customPersona.segment} • ${state.customPersona.driver}`
+                : 'Tailor segment, context, purchase driver, and tone.'
+              : personaSummary(v.persona);
+            return `
+              <button data-variant="${variantIndex}" class="variant ${variantIndex === state.selectedVariant ? 'active' : ''} flex h-full flex-col justify-start rounded-xl border border-appleLine bg-white p-2 text-left">
+                <p class="text-[16px] font-semibold">${titleText}</p>
+                <p class="mt-0.5 text-[15px] text-appleMuted">${bodyText}</p>
+              </button>
+            `;
+          })
+          .join('');
+
+        document.querySelectorAll('.variant').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const variantIndex = Number(btn.dataset.variant);
+            const clickedVariant = variants[variantIndex];
+            if (clickedVariant && clickedVariant.persona === 'students') {
+              state.selectedVariant = variantIndex;
+              state.awaitingPersonaGeneration = !state.customPersonaConfigured;
+              state.isGeneratingPersona = false;
+              renderInsights();
+              renderLoopStatus();
+              openPersonaModal(variantIndex);
+              return;
+            }
+            state.selectedVariant = variantIndex;
+            state.awaitingPersonaGeneration = false;
+            state.isGeneratingPersona = false;
+            renderInsights();
+            renderLoopStatus();
+          });
+        });
+
+        if (selected.persona === 'students') {
+          el.feedbackRows.innerHTML = '';
+        } else {
+          const reviewSummary = reviewSummaryForVariant(selected, product);
+          el.feedbackRows.innerHTML = `
+            <div class="rounded-lg bg-white p-2.5">
+              <p class="text-[28px] font-semibold leading-tight">Customers say</p>
+              <p class="mt-1 text-[16px] text-appleText">${reviewSummary.summary}</p>
+              <p class="mt-2 text-[16px]"><span class="font-semibold text-emerald-700">✓</span> ${reviewSummary.positive}</p>
+              <p class="mt-1 text-[16px]"><span class="font-semibold text-amber-700">–</span> ${reviewSummary.complaint}</p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                ${reviewSummary.topics
+                  .map((t) => `<span class="rounded-full border border-appleLine bg-appleBg px-2 py-0.5 text-[15px] text-appleMuted">${t[0]} (${t[1]})</span>`)
+                  .join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        setVariantPreviewImage(selected.heroImage, product.image);
+        const previewPersonaTag =
+          selected.persona === 'students' && state.customPersonaConfigured
+            ? `Custom persona: ${state.customPersona.segment} (maps to College students)`
+            : personaLabel(selected.persona);
+        el.variantPreviewTag.textContent = `${selected.label} • ${previewPersonaTag}`;
+        el.variantPreviewTitle.textContent = selected.title;
+        el.variantPreviewDescription.textContent = selected.description;
+        el.variantPreviewBullets.innerHTML = selected.bullets.map((b) => `<li>• ${b}</li>`).join('');
+
+        if (!awaitingPersona && !generatingPersona) {
+          drawChart(product, variants);
+          renderThirtyDayForecast(product, {
+            ...selected,
+            predictedCtr: weekCtr,
+            predictedCvr: weekCvr,
+            projectedSales: weekSales,
+            cautiousSales: weekCautious
+          });
+        }
+        renderAdobeUpsell();
+      }
+
+      function render() {
+        applyQueueView();
+        renderProducts();
+        renderInsights();
+        renderLoopStatus();
+        el.objective.value = state.objective;
+        el.sortBy.value = state.sortBy;
+      }
+
+      el.objective.addEventListener('change', () => {
+        if (state.personaGenerationTimer) clearTimeout(state.personaGenerationTimer);
+        state.personaGenerationTimer = null;
+        state.objective = el.objective.value;
+        state.selectedVariant = 0;
+        state.awaitingPersonaGeneration = false;
+        state.isGeneratingPersona = false;
+        state.simWeek = 1;
+        render();
+      });
+
+      el.sortBy.addEventListener('change', () => {
+        state.sortBy = el.sortBy.value;
+        renderProducts();
+      });
+
+      el.queueToggleBtn.addEventListener('click', () => {
+        state.queueCompact = !state.queueCompact;
+        render();
+      });
+
+      el.nextWeekBtn.addEventListener('click', () => {
+        state.simWeek = Math.min(5, state.simWeek + 1);
+        render();
+      });
+
+      el.resetWeekBtn.addEventListener('click', () => {
+        state.simWeek = 1;
+        render();
+      });
+
+      el.adobeSubBtn.addEventListener('click', () => {
+        state.adobePlan = 'subscription';
+        render();
+      });
+
+      el.adobeOneTimeBtn.addEventListener('click', () => {
+        state.adobePlan = 'one_time';
+        render();
+      });
+
+      el.adobeClearBtn.addEventListener('click', () => {
+        state.adobePlan = 'none';
+        render();
+      });
+
+      el.adobeRibbonToggle.addEventListener('click', () => {
+        state.adobeRibbonOpen = !state.adobeRibbonOpen;
+        renderAdobeUpsell();
+      });
+
+      el.adobeRibbonClose.addEventListener('click', () => {
+        state.adobeRibbonOpen = false;
+        renderAdobeUpsell();
+      });
+
+      el.personaModalClose.addEventListener('click', closePersonaModal);
+      el.personaModalCancel.addEventListener('click', closePersonaModal);
+      el.personaModal.addEventListener('click', (event) => {
+        if (event.target === el.personaModal) closePersonaModal();
+      });
+      el.personaModalApply.addEventListener('click', () => {
+        state.customPersona.segment = el.personaSegment.value.trim() || state.customPersona.segment;
+        state.customPersona.context = el.personaContext.value.trim() || state.customPersona.context;
+        state.customPersona.driver = el.personaDriver.value.trim() || state.customPersona.driver;
+        state.customPersona.tone = el.personaTone.value.trim() || state.customPersona.tone;
+        state.customPersonaConfigured = false;
+        state.awaitingPersonaGeneration = true;
+        state.isGeneratingPersona = true;
+        if (typeof state.pendingPersonaVariant === 'number') {
+          state.selectedVariant = state.pendingPersonaVariant;
+        }
+        closePersonaModal();
+        renderInsights();
+        renderLoopStatus();
+        if (state.personaGenerationTimer) clearTimeout(state.personaGenerationTimer);
+        const waitMs = 2000 + Math.floor(Math.random() * 1000);
+        state.personaGenerationTimer = setTimeout(() => {
+          state.customPersonaConfigured = true;
+          state.awaitingPersonaGeneration = false;
+          state.isGeneratingPersona = false;
+          state.personaGenerationTimer = null;
+          renderInsights();
+          renderLoopStatus();
+        }, waitMs);
+      });
+
+      el.chart.addEventListener('mousemove', (event) => {
+        const rect = el.chart.getBoundingClientRect();
+        const mx = event.clientX - rect.left;
+        const my = event.clientY - rect.top;
+        const point = nearestChartPoint(mx, my);
+        if (!point) {
+          el.chartTooltip.classList.add('hidden');
+          return;
+        }
+        const saleNote = point.week === 2 ? `<div class="text-appleMuted">Back-to-school sale: ${BACK_TO_SCHOOL_SALE_DATE}</div>` : '';
+        el.chartTooltip.innerHTML = `<div class="font-medium">${point.label} • W${point.week}</div><div style="color:${point.color}">${money(point.value)}</div>${saleNote}`;
+        el.chartTooltip.style.left = `${Math.min(rect.width - 150, Math.max(8, point.x + 10))}px`;
+        el.chartTooltip.style.top = `${Math.min(rect.height - 52, Math.max(8, point.y - 36))}px`;
+        el.chartTooltip.classList.remove('hidden');
+      });
+
+      el.chart.addEventListener('mouseleave', () => {
+        el.chartTooltip.classList.add('hidden');
+      });
+
+      window.addEventListener('resize', () => renderInsights());
+
+      render();
+    </script>
+  </body>
+</html>
